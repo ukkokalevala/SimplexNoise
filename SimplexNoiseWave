@@ -1,0 +1,38 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include "SimplexNoise.h"
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define SOUND_SENSOR_PIN 2  // Adjust based on your ESP32-C3 pin
+
+SimplexNoise noise;  // Create noise instance
+
+void setup() {
+    Serial.begin(115200);
+    Wire.begin(7, 6);
+
+    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {  // Check OLED I2C address
+        Serial.println(F("SSD1306 allocation failed"));
+        for (;;);
+    }
+    display.clearDisplay();
+}
+
+void loop() {
+    float soundLevel = analogRead(SOUND_SENSOR_PIN) / 4095.0;  // Normalize input (0-1)
+    float timeOffset = millis() * 0.0005;  // Smooth animation
+
+    display.clearDisplay();
+    for (int x = 0; x < SCREEN_WIDTH; x++) {
+        float noiseValue = noise.noise(x * 0.1, soundLevel * 5 + timeOffset);  // 2D noise
+        int y = (SCREEN_HEIGHT / 2) + (noiseValue * 20);
+        display.drawPixel(x, y, SSD1306_WHITE);
+    }
+    display.display();
+    delay(50);
+}
